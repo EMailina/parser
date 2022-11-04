@@ -9,6 +9,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.GregorianCalendar;
+import java.util.HashMap;
 import java.util.Random;
 import java.util.Scanner;
 import java.util.logging.Level;
@@ -20,13 +21,15 @@ import java.util.logging.Logger;
  */
 public class PersonsGenerator {
 
-    private final int COUNT_OF_STREETS = 32524;
+    private final int COUNT_OF_STREETS = 62381;
     private final int RANGE_OF_BUILDING = 9999;
-    private final int RANGE_OF_PROPERTY = 1000;
+    private final int RANGE_OF_PROPERTY = 119999;
+    
+    private final int COUNT_OF_CITY_AREAS = 22;
 
-    private final int COUNT_OF_PERSONS = 10000;
-    private final int COUNT_OF_AGENTS = 1000;
-    private final int COUNT_OF_SOLD_PROPERTY = 10000;
+    private final int COUNT_OF_PERSONS = 200000;
+    private final int COUNT_OF_AGENTS = 10000;
+    private final int COUNT_OF_SOLD_PROPERTY = 250000;
 
     ArrayList<String> surnames = new ArrayList<>();
     ArrayList<String> nameFemale = new ArrayList<>();
@@ -38,20 +41,59 @@ public class PersonsGenerator {
 
     ArrayList<AgentEntity> agents = new ArrayList<>();
     ArrayList<String> compositeKeysSold = new ArrayList<>();
+    
+    HashMap<String, Float> prices = new HashMap<>();
 
     Random rand = new Random();
+    
+    public void generateSchoolEvidence() throws IOException{
+        
+        FileWriter writer = new FileWriter("export/r_school_evidence.unl");
+        for (int i = 0; i < COUNT_OF_CITY_AREAS; i++) {
+            
+            
+            String id = "" + (i + 1);
+            String primarySchools = "" + randBetween(65, 95);
+            String elementarySchools = "" + randBetween(20, 40);
+            String middleSchools = "" + randBetween(3, 9);
+            String hightSchools = "" + randBetween(80, 100);
+            
+            writer.append(id);
+            writer.append(";");
+            writer.append(primarySchools);
+            writer.append(";");
+            writer.append(elementarySchools);
+            writer.append(";");
+            writer.append(middleSchools);
+            writer.append(";");
+            writer.append(hightSchools);
+            writer.append(";");
+            writer.append("\n");
+            
+        }
+        
+        writer.flush();
+        writer.close();
+        
+    }
 
     public void generateSoldProperty() throws IOException {
 
+        loadPrices();
         String date;
         String agent;
         String customer;
         String property;
-        float price;
+        Float price;
 
         FileWriter writer = new FileWriter("export/r_sold_property.unl");
 
+        System.out.println("generateSoldProperty");
         for (int i = 0; i < COUNT_OF_SOLD_PROPERTY; i++) {
+            
+            if (i % 10000 == 0) {
+                System.out.println("" + i);
+            }
 
             String compositeKey;
             do {
@@ -60,9 +102,23 @@ public class PersonsGenerator {
                 date = generateDateOfSold(agentEntity);
                 agent = "" + agentEntity.getId();
                 customer = idNumbers.get(rand.nextInt(idNumbers.size()));
-                property = "" + rand.nextInt(RANGE_OF_PROPERTY) + 1;
+                property = "" + (rand.nextInt(RANGE_OF_PROPERTY) + 1);
 
-                price = rand.nextFloat(); //dočasne len
+                int percent = rand.nextInt(7)+1;
+                float percents = (float)percent/100;
+                
+                price = prices.get(property);
+                
+                if (price == null) {
+                    System.out.println("");
+                }
+                
+                if (rand.nextBoolean()) { // kupene nadcenu 
+                    price += (price * percents);
+                } else {                  // kupene podcenou
+                    price -= (price * percents);
+                }
+                
 
                 compositeKey = date + agent + customer + property;
             } while (compositeKeysSold.contains(compositeKey));
@@ -275,9 +331,9 @@ public class PersonsGenerator {
                 writer.append(number);
             }
             writer.append(";");
-            writer.append("" + rand.nextInt(RANGE_OF_BUILDING) + 1);
+            writer.append("" + (rand.nextInt(RANGE_OF_BUILDING) + 1));
             writer.append(";");
-            writer.append("" + rand.nextInt(COUNT_OF_STREETS) + 1);
+            writer.append("" + (rand.nextInt(COUNT_OF_STREETS) + 1));
             writer.append(";");
             writer.append("\n");
 
@@ -432,6 +488,29 @@ public class PersonsGenerator {
             }
 
             System.out.println("First names was loaded.");
+
+        } catch (FileNotFoundException ex) {
+            Logger.getLogger(PersonsGenerator.class
+                    .getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+    
+    private void loadPrices(){
+        Scanner scanner;
+        try {
+            scanner = new Scanner(new File("data/prices.csv"));
+
+            scanner.useDelimiter(",|\\n");
+
+            while (scanner.hasNext()) {
+                String line = scanner.nextLine();
+                String[] data = line.split(",");
+                
+                prices.put(data[0], Float.valueOf(data[1]));
+                
+            }
+
+            System.out.println("Prices loaded.");
 
         } catch (FileNotFoundException ex) {
             Logger.getLogger(PersonsGenerator.class

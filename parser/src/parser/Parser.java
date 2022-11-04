@@ -22,6 +22,7 @@ public class Parser {
         dataGenerator.generatePersonEntityData();
         dataGenerator.generateRealEstateAgents();
         dataGenerator.generateSoldProperty();
+        //dataGenerator.generateSchoolEvidence();
         
     }
     
